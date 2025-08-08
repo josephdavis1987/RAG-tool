@@ -1,10 +1,13 @@
-# RAG-Powered PDF Intelligence Assistant with A/B Testing
+# RAG-Powered PDF Intelligence Assistant with A/B/C Testing
 
-A Retrieval-Augmented Generation (RAG) system for querying large PDF documents using natural language. Built specifically for analyzing government bills and lengthy documents (50+ pages). Features built-in A/B testing to compare RAG vs Non-RAG performance.
+A Retrieval-Augmented Generation (RAG) system for querying large PDF documents using natural language. Built specifically for analyzing government bills and lengthy documents (50+ pages). Features advanced A/B/C testing to compare RAG vs Non-RAG vs RAG+LLM Hybrid performance.
 
 ## Features
 
-- **A/B Testing**: Side-by-side RAG vs Non-RAG answer comparison with performance metrics
+- **A/B/C Testing**: Three-way comparison with instant toggle between modes:
+  - **RAG Only**: Strict document-based answers with citations
+  - **Non-RAG LLM**: Pure AI knowledge without document context  
+  - **RAG + LLM Hybrid**: Best of both - document context enhanced with AI knowledge
 - **Background Processing**: Upload documents and get immediate feedback - no waiting!
 - **SQLite Persistence**: Process documents once, query forever
 - **PDF Document Processing**: Upload and parse large PDF files (100+ pages)
@@ -49,21 +52,23 @@ python test_background.py   # Background processing test
 4. **Select**: Click any completed document to activate Q&A mode
 5. **Query**: Ask questions using three options:
    - **Ask Question (RAG Only)**: Standard RAG-powered answer
-   - **A/B Compare**: Side-by-side RAG vs Non-RAG comparison with metrics
+   - **A/B Compare**: Three-way comparison with instant mode switching
    - **Generate Document Summary**: Overview of the document
-6. **Analyze**: Compare performance metrics (response time, tokens, chunks used)
+6. **Analyze**: Compare performance metrics across all three modes
 7. **Manage**: Delete documents you no longer need
 
-### A/B Testing Interface
-- **Side-by-side comparison**: RAG answer (left) vs Non-RAG answer (right)
-- **Performance metrics**: Displayed above each answer for easy comparison
-  - ⏱️ Response time
-  - 🎯 Chunks used (RAG only)
-  - 📊 Total tokens
-  - 📝 Context tokens (RAG) / 💭 Pure LLM (Non-RAG)
-  - ✍️ Generated tokens
-- **Real-time generation**: Both answers generated simultaneously
-- **Value-add analysis**: Quantify when RAG provides meaningful improvement
+### A/B/C Testing Interface
+- **Three-way comparison**: All answers generated simultaneously for efficiency
+- **Left Column**: RAG Answer (document-focused with citations)
+- **Right Column**: Toggle between Non-RAG LLM and RAG+LLM Hybrid
+- **Performance metrics**: Comprehensive metrics for each mode
+  - ⏱️ Response time and processing speed
+  - 🎯 Chunks used (RAG modes only)
+  - 📊 Total token consumption
+  - 📝 Context tokens vs generated tokens
+  - 💭 Mode-specific indicators
+- **Instant switching**: Toggle between modes without regenerating answers
+- **Stakeholder value**: Perfect for demonstrating when each approach excels
 
 ### CLI Development Tools
 ```bash
@@ -109,27 +114,54 @@ Designed for analyzing government legislation such as:
 - OpenAI API key
 - Conda environment: `RAG_env`
 
+## Deployment
+
+### Streamlit Community Cloud (Recommended)
+1. Push repository to GitHub (private repos supported)
+2. Go to [share.streamlit.io](https://share.streamlit.io)
+3. Connect GitHub account and select repository
+4. Set main file: `app_v2.py`
+5. Add secrets: `OPENAI_API_KEY = your_key`
+6. Deploy!
+
+### Local Development
+```bash
+conda activate RAG_env
+streamlit run app_v2.py
+```
+
+### Alternative Hosting
+- **Ngrok**: For quick demos (`ngrok http 8501`)
+- **Railway/Render**: Easy GitHub integration
+- **AWS/GCP**: Professional deployment
+
 ## File Structure
 ```
 RAG tool 1.0/
-├── app_v2.py              # Main Streamlit application (with background processing)
+├── app_v2.py              # Main Streamlit application (A/B/C testing)
 ├── background_processor.py # Background processing system
 ├── database.py            # SQLite storage and management
 ├── pdf_loader.py          # PDF text extraction
 ├── embed_and_store.py     # Chunking and embedding generation
-├── rag_chain.py           # Question answering with citations
+├── rag_chain.py           # Question answering with RAG/Non-RAG/Hybrid modes
 ├── config.py              # Configuration settings
 ├── test_cli.py            # CLI testing framework
 ├── test_background.py     # Background processing tests
 ├── create_test_pdf.py     # Test document generator
 ├── requirements.txt       # Python dependencies
 ├── .env.example           # Environment template
+├── .streamlit/
+│   ├── config.toml        # Streamlit configuration for deployment
+│   └── secrets.toml       # Local secrets (gitignored)
 └── uploads/               # Uploaded documents storage (created automatically)
 ```
 
 ## Key Benefits
 
+- **Advanced A/B/C Testing**: Compare three distinct approaches in real-time
 - **No Wait Time**: Background processing eliminates 15-minute embedding waits
 - **One-Time Processing**: Documents stored permanently after first upload
+- **Instant Mode Switching**: Toggle between approaches without regeneration
 - **Scale Ready**: Handles 50-200+ page government documents efficiently
 - **Production Ready**: SQLite persistence, error handling, progress tracking
+- **Deployment Ready**: Streamlit Cloud configuration included
