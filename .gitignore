@@ -1,0 +1,42 @@
+# Environment variables (contains API keys)
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Database files
+*.db
+documents.db
+
+# Uploaded files (optional - you may want to keep test files)
+uploads/
+*.pdf
+
+# Virtual environment
+venv/
+env/
+RAG_env/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Screenshots (optional)
+Screenshot*.png
+
+# Streamlit
+.streamlit/
+
+# Logs
+*.log
