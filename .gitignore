@@ -35,8 +35,8 @@ Thumbs.db
 # Screenshots (optional)
 Screenshot*.png
 
-# Streamlit
-.streamlit/
+# Streamlit secrets (keep config.toml but exclude secrets.toml)
+.streamlit/secrets.toml
 
 # Logs
 *.log
