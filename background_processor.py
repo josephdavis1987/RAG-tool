@@ -105,7 +105,7 @@ class BackgroundProcessor:
             for i, chunk in enumerate(chunks):
                 try:
                     response = self.client.embeddings.create(
-                        model="text-embedding-3-small",
+                        model=config.EMBEDDING_MODEL,
                         input=chunk['text']
                     )
                     

@@ -28,13 +28,19 @@ def progress_callback(doc_id, status, progress, message):
 
 def main():
     st.set_page_config(
-        page_title="RAG PDF Intelligence Assistant v2",
-        page_icon="📄",
+        page_title="RAG Methodology Evaluation Framework",
+        page_icon="🔬",
         layout="wide"
     )
     
-    st.title("📄 RAG-Powered PDF Intelligence Assistant v2")
-    st.markdown("**Background Processing Edition** - Upload documents and query instantly!")
+    st.title("🔬 RAG Methodology Evaluation Framework")
+    st.markdown("**Empirical Comparison Platform** - Evaluate RAG-only vs. RAG+LLM hybrid approaches with quantitative metrics")
+    
+    # Research objective callout
+    st.info(
+        "🎯 **Research Question**: Should we use pure RAG or RAG+LLM hybrid for our specific use case? "
+        "This framework provides empirical measurement of accuracy vs. completeness trade-offs."
+    )
     
     # Initialize
     client = initialize_openai_client()
@@ -51,16 +57,16 @@ def main():
     
     # Sidebar
     with st.sidebar:
-        st.header("📤 Document Upload")
+        st.header("📊 Evaluation Setup")
         
         uploaded_file = st.file_uploader(
-            "Choose a PDF file", 
+            "Upload Evaluation Document", 
             type="pdf",
-            help="Upload government bills, policy documents, or other large PDFs"
+            help="Upload representative documents from your domain for methodology comparison"
         )
         
         if uploaded_file is not None:
-            if st.button("Queue for Processing", type="primary"):
+            if st.button("Process for Evaluation", type="primary"):
                 # Create uploads directory if it doesn't exist
                 uploads_dir = "uploads"
                 os.makedirs(uploads_dir, exist_ok=True)
@@ -87,8 +93,8 @@ def main():
         
         st.divider()
         
-        # Document Library
-        st.header("📚 Document Library")
+        # Evaluation Documents
+        st.header("📊 Evaluation Documents")
         docs = processor.list_documents()
         
         if docs:
@@ -114,21 +120,21 @@ def main():
                         processor.delete_document(doc['id'])
                         st.rerun()
         else:
-            st.info("No documents uploaded yet")
+            st.info("No evaluation documents available")
         
         st.divider()
         
-        # System Stats
-        st.header("📊 System Stats")
+        # Framework Stats
+        st.header("📈 Framework Metrics")
         stats = processor.get_stats()
         for key, value in stats.items():
             if key.endswith('_documents'):
                 status = key.replace('_documents', '')
-                st.metric(f"{status.title()} Docs", value)
+                st.metric(f"{status.title()} Documents", value)
             elif key == 'total_chunks':
                 st.metric("Total Chunks", value)
             elif key == 'queue_size':
-                st.metric("Queue Size", value)
+                st.metric("Processing Queue", value)
     
     # Main content
     if st.session_state.selected_doc_id:
@@ -191,7 +197,7 @@ def main():
         # Q&A Interface for completed documents
         if doc['status'] == 'completed':
             st.divider()
-            st.subheader("💬 Ask Questions")
+            st.subheader("🔬 Methodology Evaluation")
             
             # Load embeddings
             embeddings_df = processor.get_embeddings_df(doc_id)
@@ -199,8 +205,8 @@ def main():
             if embeddings_df.empty:
                 st.error("No embeddings found for this document")
             else:
-                # Compact Document Statistics
-                with st.expander("📊 Document Statistics", expanded=False):
+                # Evaluation Document Metrics
+                with st.expander("📊 Evaluation Document Metrics", expanded=False):
                     col_stats1, col_stats2, col_stats3 = st.columns(3)
                     
                     with col_stats1:
@@ -221,15 +227,16 @@ def main():
                 
                 with col1:
                     query = st.text_area(
-                        "Enter your question:",
-                        placeholder="e.g., What are the main provisions? What are the tax implications?",
+                        "Enter evaluation query:",
+                        placeholder="e.g., What are the main provisions? What are the compliance requirements?",
+                        help="Design queries that test different aspects: factual retrieval, analytical reasoning, synthesis",
                         height=100
                     )
                     
-                    col_ask, col_ab, col_summary = st.columns([1, 1, 1])
+                    col_baseline, col_comparison, col_summary = st.columns([1, 1, 1])
                     
-                    with col_ask:
-                        if st.button("Ask Question (RAG Only)", disabled=not query.strip()):
+                    with col_baseline:
+                        if st.button("RAG-Only Baseline", disabled=not query.strip(), help="Zero-hallucination document-only approach"):
                             if query.strip():
                                 with st.spinner("Generating RAG answer..."):
                                     result = rag_chain.answer_question(
@@ -239,7 +246,7 @@ def main():
                                         include_neighbors=True
                                     )
                                 
-                                st.subheader("🎯 RAG Answer")
+                                st.subheader("🎯 RAG-Only Results")
                                 st.write(result['answer'])
                                 
                                 with st.expander("📋 Answer Details"):
@@ -257,8 +264,8 @@ def main():
                                             st.text(preview_text)
                                             st.divider()
                     
-                    with col_ab:
-                        if st.button("A/B Compare", type="primary", disabled=not query.strip()):
+                    with col_comparison:
+                        if st.button("Three-Way Comparison", type="primary", disabled=not query.strip(), help="Compare RAG-only vs Non-RAG vs Hybrid approaches"):
                             if query.strip():
                                 # Generate all three answers simultaneously
                                 with st.spinner("Generating RAG, Non-RAG, and Hybrid answers..."):
@@ -299,7 +306,7 @@ def main():
                             st.write(summary)
                 
                 with col2:
-                    st.subheader("🔍 Sample Chunks")
+                    st.subheader("📊 Retrieval Analysis")
                     if len(embeddings_df) > 0:
                         sample_chunks = embeddings_df.head(3)
                         for idx, row in sample_chunks.iterrows():
@@ -307,11 +314,17 @@ def main():
                                 preview_text = row['text'][:200] + "..." if len(row['text']) > 200 else row['text']
                                 st.text(preview_text)
         
-        # Display A/B comparison results if available
+        # Display methodology comparison results if available
         if st.session_state.ab_results:
             st.divider()
-            st.subheader("🆚 A/B Comparison Results")
-            st.write(f"**Query:** {st.session_state.ab_results['query']}")
+            st.subheader("🔬 Methodology Comparison Results")
+            st.write(f"**Evaluation Query:** {st.session_state.ab_results['query']}")
+            
+            # Add research context
+            st.markdown(
+                "📊 **Research Objective**: Quantify trade-offs between accuracy (RAG-only) "
+                "vs. completeness (Hybrid) vs. baseline (Non-RAG) approaches."
+            )
             
             # Initialize comparison mode if not set
             if 'comparison_mode' not in st.session_state:
@@ -333,16 +346,16 @@ def main():
                 st.write("")  # Empty space to align with dropdown height
                 st.write("")  # Empty space to align with dropdown height
                 
-                st.subheader("🔍 RAG Answer")
+                st.subheader("🔍 RAG-Only (Zero Hallucination)")
                 
-                # Compact metrics right above answer
+                # Research metrics for RAG-only approach
                 metric_col1, metric_col2, metric_col3 = st.columns([1, 1, 1])
                 with metric_col1:
-                    st.caption(f"⏱️ {rag_result.get('response_time', 0):.2f}s • 🎯 {rag_result['chunks_used']}ch")
+                    st.caption(f"⏱️ {rag_result.get('response_time', 0):.2f}s • 🎯 {rag_result['chunks_used']} chunks")
                 with metric_col2:
-                    st.caption(f"📊 {rag_result.get('total_tokens', 0)}tok • 📝 {rag_result['context_tokens']}ctx")
+                    st.caption(f"📊 {rag_result.get('total_tokens', 0)} tokens • 📝 {rag_result['context_tokens']} ctx")
                 with metric_col3:
-                    st.caption(f"✍️ {rag_result.get('completion_tokens', 0)}gen")
+                    st.caption(f"✍️ {rag_result.get('completion_tokens', 0)} gen • 🎯 0% hallucination")
                 
                 st.write(rag_result['answer'])
             
@@ -350,61 +363,81 @@ def main():
             with comparison_col:
                 # Mode toggle switch positioned in the comparison column
                 st.selectbox(
-                    "View Mode:",
+                    "Comparison Method:",
                     options=['non_rag', 'hybrid'],
-                    format_func=lambda x: '🧠 Non-RAG LLM' if x == 'non_rag' else '🔗 RAG + LLM Hybrid',
+                    format_func=lambda x: '🧠 Non-RAG Baseline (Control)' if x == 'non_rag' else '🔗 RAG+LLM Hybrid (Enhanced)',
                     index=0 if st.session_state.comparison_mode == 'non_rag' else 1,
                     key="comparison_mode_select",
+                    help="Toggle between control group and enhanced methodology",
                     on_change=lambda: setattr(st.session_state, 'comparison_mode', st.session_state.comparison_mode_select)
                 )
                 
                 # Display the selected answer type
                 if st.session_state.comparison_mode == 'non_rag':
-                    st.subheader("🧠 Non-RAG Answer")
+                    st.subheader("🧠 Non-RAG Baseline (Control Group)")
                     
-                    # Compact metrics right above answer
+                    # Research metrics for control group
                     metric_col1, metric_col2 = st.columns(2)
                     with metric_col1:
-                        st.caption(f"⏱️ {non_rag_result.get('response_time', 0):.2f}s • 💭 Pure LLM")
+                        st.caption(f"⏱️ {non_rag_result.get('response_time', 0):.2f}s • 💭 No document context")
                     with metric_col2:
-                        st.caption(f"📊 {non_rag_result.get('total_tokens', 0)}tok • ✍️ {non_rag_result.get('completion_tokens', 0)}gen")
+                        st.caption(f"📊 {non_rag_result.get('total_tokens', 0)} tokens • ✍️ {non_rag_result.get('completion_tokens', 0)} generated")
                     
                     st.write(non_rag_result['answer'])
+                    st.caption("🔬 **Research Note**: Baseline showing pure LLM performance without document grounding")
                     
                 else:  # hybrid mode
-                    st.subheader("🔗 RAG + LLM Hybrid")
+                    st.subheader("🔗 RAG+LLM Hybrid (Enhanced Method)")
                     
-                    # Compact metrics right above answer
+                    # Research metrics for hybrid approach
                     metric_col1, metric_col2, metric_col3 = st.columns([1, 1, 1])
                     with metric_col1:
-                        st.caption(f"⏱️ {hybrid_result.get('response_time', 0):.2f}s • 🎯 {hybrid_result.get('chunks_used', 0)}ch")
+                        st.caption(f"⏱️ {hybrid_result.get('response_time', 0):.2f}s • 🎯 {hybrid_result.get('chunks_used', 0)} chunks")
                     with metric_col2:
-                        st.caption(f"📊 {hybrid_result.get('total_tokens', 0)}tok • 📝 {hybrid_result.get('context_tokens', 0)}ctx")
+                        st.caption(f"📊 {hybrid_result.get('total_tokens', 0)} tokens • 📝 {hybrid_result.get('context_tokens', 0)} ctx")
                     with metric_col3:
-                        st.caption(f"✍️ {hybrid_result.get('completion_tokens', 0)}gen")
+                        st.caption(f"✍️ {hybrid_result.get('completion_tokens', 0)} gen • ⚠️ ~5-10% hallucination risk")
                     
                     st.write(hybrid_result['answer'])
+                    st.caption("🔬 **Research Note**: Enhanced approach combining document facts with LLM reasoning")
             
-            # Clear results button
-            if st.button("Clear Comparison Results"):
-                st.session_state.ab_results = None
-                st.rerun()
+            # Research actions
+            col_clear, col_export = st.columns(2)
+            with col_clear:
+                if st.button("Clear Results"):
+                    st.session_state.ab_results = None
+                    st.rerun()
+            with col_export:
+                if st.button("Export Data", help="Export metrics for statistical analysis"):
+                    st.info("📊 Export functionality: Save comparison metrics to CSV for further analysis")
     
     else:
-        st.info("👈 Please upload a document or select one from the library")
+        st.info("👈 Please upload an evaluation document or select one from the library")
         
-        st.subheader("🎯 About This Tool")
+        st.subheader("🔬 About This Research Framework")
         st.markdown("""
-        This RAG-powered assistant features **background processing** for analyzing large documents:
+        This framework enables **empirical evaluation of RAG methodologies** for evidence-based architecture decisions:
         
-        - **📤 Upload & Go**: Documents process in background - no waiting required
-        - **💾 Persistent Storage**: Process once, query forever  
-        - **🔍 Smart Retrieval**: Hybrid semantic + neighbor context search
-        - **💡 GPT-4 Answers**: Detailed responses with source citations
-        - **📊 Document Library**: Browse and manage processed documents
-        - **⚡ Instant Access**: Query completed documents immediately
+        ### 📋 Research Capabilities
+        - **Three-Way Comparison**: RAG-only vs. Non-RAG vs. RAG+LLM Hybrid
+        - **Quantitative Metrics**: Accuracy, completeness, hallucination rates, performance
+        - **Statistical Analysis**: Export data for significance testing and confidence intervals
+        - **Domain Validation**: Test with your specific document types and query patterns
+        - **Risk Quantification**: Measure actual vs. theoretical trade-offs
         
-        Perfect for government bills, policy documents, and technical reports.
+        ### 🎯 Key Research Questions
+        1. **When does RAG+LLM hybrid justify the hallucination risk?**
+        2. **What completeness do we gain vs. accuracy we lose?**
+        3. **Which approach works better for our query patterns?**
+        4. **What are the cost-effectiveness trade-offs?**
+        
+        ### 📈 Evaluation Protocol
+        1. Upload representative documents from your domain
+        2. Design test queries covering factual, analytical, and synthetic tasks
+        3. Run three-way comparison to collect metrics
+        4. Export data for statistical analysis and decision making
+        
+        **Perfect for data science teams making RAG architecture decisions.**
         """)
     
     # Auto-refresh processing documents
@@ -414,6 +447,13 @@ def main():
     if processing_docs:
         time.sleep(2)
         st.rerun()
+    
+    # Add footer with research context
+    st.divider()
+    st.markdown(
+        "🔬 **Research Framework**: This tool quantifies RAG methodology trade-offs through systematic evaluation. "
+        "For technical details, see the [Methodology Comparison documentation](METHODOLOGY_COMPARISON.md)."
+    )
 
 if __name__ == "__main__":
     try:

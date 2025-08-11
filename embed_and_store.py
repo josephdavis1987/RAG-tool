@@ -5,13 +5,14 @@ import tiktoken
 from openai import OpenAI
 from sklearn.metrics.pairwise import cosine_similarity
 import streamlit as st
+import config
 
 class DocumentEmbedder:
     def __init__(self, openai_client: OpenAI):
         self.client = openai_client
-        self.encoding = tiktoken.encoding_for_model("text-embedding-3-small")
-        self.chunk_size = 1000
-        self.overlap = 200
+        self.encoding = tiktoken.encoding_for_model(config.EMBEDDING_MODEL)
+        self.chunk_size = config.CHUNK_SIZE
+        self.overlap = config.CHUNK_OVERLAP
         
     def chunk_text(self, text: str, chunk_size: int = None, overlap: int = None) -> List[Dict]:
         chunk_size = chunk_size or self.chunk_size
@@ -63,7 +64,7 @@ class DocumentEmbedder:
         for i, chunk in enumerate(chunks):
             try:
                 response = self.client.embeddings.create(
-                    model="text-embedding-3-small",
+                    model=config.EMBEDDING_MODEL,
                     input=chunk['text']
                 )
                 
@@ -95,7 +96,7 @@ class DocumentEmbedder:
                           top_k: int = 5, include_neighbors: bool = True) -> List[Dict]:
         try:
             query_response = self.client.embeddings.create(
-                model="text-embedding-3-small",
+                model=config.EMBEDDING_MODEL,
                 input=query
             )
             query_embedding = np.array(query_response.data[0].embedding).reshape(1, -1)

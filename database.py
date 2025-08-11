@@ -1,5 +1,4 @@
 import sqlite3
-import json
 import hashlib
 import os
 from datetime import datetime
@@ -128,17 +127,6 @@ class DocumentDatabase:
             result = conn.execute("""
                 SELECT * FROM documents WHERE id = ?
             """, (doc_id,)).fetchone()
-            
-            if result:
-                return dict(result)
-            return None
-    
-    def get_document_by_hash(self, file_hash: str) -> Optional[Dict]:
-        with sqlite3.connect(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
-            result = conn.execute("""
-                SELECT * FROM documents WHERE file_hash = ?
-            """, (file_hash,)).fetchone()
             
             if result:
                 return dict(result)

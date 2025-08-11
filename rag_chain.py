@@ -4,16 +4,17 @@ import pandas as pd
 import streamlit as st
 import tiktoken
 from embed_and_store import DocumentEmbedder
+import config
 
 class RAGChain:
     def __init__(self, openai_client: OpenAI):
         self.client = openai_client
         self.embedder = DocumentEmbedder(openai_client)
-        self.encoding = tiktoken.encoding_for_model("gpt-4")
-        self.max_context_tokens = 6000  # Leave room for response
+        self.encoding = tiktoken.encoding_for_model(config.CHAT_MODEL)
+        self.max_context_tokens = config.MAX_CONTEXT_TOKENS - 2000  # Leave room for response
         
     def generate_answer(self, query: str, relevant_chunks: List[Dict], 
-                       model: str = "gpt-4") -> Dict:
+                       model: str = None) -> Dict:
         import time
         
         # Limit context to fit within token budget
@@ -41,13 +42,13 @@ Please provide a comprehensive answer with citations to specific chunks (using c
         
         try:
             response = self.client.chat.completions.create(
-                model=model,
+                model=model or config.CHAT_MODEL,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
                 temperature=0.2,
-                max_tokens=1500
+                max_tokens=config.MAX_RESPONSE_TOKENS
             )
             
             response_time = time.time() - start_time
@@ -162,13 +163,13 @@ Please provide a comprehensive answer with citations to specific chunks (using c
         
         try:
             response = self.client.chat.completions.create(
-                model=model,
+                model=model or config.CHAT_MODEL,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": query}
                 ],
                 temperature=0.2,
-                max_tokens=1500
+                max_tokens=config.MAX_RESPONSE_TOKENS
             )
             
             response_time = time.time() - start_time
@@ -213,7 +214,7 @@ Focus on the main topics, key provisions, and overall purpose of the document.""
 
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4",
+                model=config.CHAT_MODEL,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -229,7 +230,7 @@ Focus on the main topics, key provisions, and overall purpose of the document.""
     
     def generate_hybrid_answer(self, query: str, embeddings_df: pd.DataFrame, 
                               top_k: int = 5, include_neighbors: bool = True, 
-                              model: str = "gpt-4") -> Dict:
+                              model: str = None) -> Dict:
         import time
         
         relevant_chunks = self.embedder.find_similar_chunks(
@@ -264,13 +265,13 @@ Please provide a comprehensive answer that uses the document context as a founda
         
         try:
             response = self.client.chat.completions.create(
-                model=model,
+                model=model or config.CHAT_MODEL,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
                 temperature=0.3,
-                max_tokens=1500
+                max_tokens=config.MAX_RESPONSE_TOKENS
             )
             
             response_time = time.time() - start_time
