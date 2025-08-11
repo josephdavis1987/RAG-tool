@@ -1,3 +1,28 @@
+"""
+Document Embedding and Retrieval Module
+
+Handles text chunking, embedding generation, and similarity search operations.
+This module is the core of the RAG system's retrieval capabilities.
+
+Key Features:
+- Semantic-aware text chunking with configurable overlap
+- OpenAI embedding generation for each chunk
+- Cosine similarity search with neighbor context inclusion
+- Token counting for context window management
+
+Chunking Strategy:
+- Splits text at sentence boundaries to preserve meaning
+- Maintains overlap between chunks for context continuity
+- Tracks token counts to stay within model limits
+- Preserves sentence indices for citation purposes
+
+Typical usage:
+    embedder = DocumentEmbedder(openai_client)
+    chunks = embedder.chunk_text(document_text)
+    embeddings_df = embedder.generate_embeddings(chunks)
+    similar = embedder.find_similar_chunks(query, embeddings_df)
+"""
+
 import pandas as pd
 import numpy as np
 from typing import List, Dict, Tuple
@@ -8,13 +33,52 @@ import streamlit as st
 import config
 
 class DocumentEmbedder:
+    """
+    Manages document chunking, embedding generation, and similarity search.
+    
+    This class provides the retrieval component of the RAG system,
+    converting documents into searchable vector representations.
+    """
     def __init__(self, openai_client: OpenAI):
+        """
+        Initialize the DocumentEmbedder with OpenAI client.
+        
+        Args:
+            openai_client: Configured OpenAI client for API calls
+        
+        Note:
+            Uses configuration from config.py for model and chunk settings
+        """
         self.client = openai_client
         self.encoding = tiktoken.encoding_for_model(config.EMBEDDING_MODEL)
         self.chunk_size = config.CHUNK_SIZE
         self.overlap = config.CHUNK_OVERLAP
         
     def chunk_text(self, text: str, chunk_size: int = None, overlap: int = None) -> List[Dict]:
+        """
+        Split text into overlapping chunks at sentence boundaries.
+        
+        Implements semantic-aware chunking that respects sentence boundaries
+        to preserve meaning and context. Includes configurable overlap to
+        maintain continuity between chunks.
+        
+        Args:
+            text: Document text to chunk
+            chunk_size: Maximum tokens per chunk (default: config.CHUNK_SIZE)
+            overlap: Token overlap between chunks (default: config.CHUNK_OVERLAP)
+        
+        Returns:
+            List of dictionaries containing:
+                - chunk_id: Sequential identifier
+                - text: Chunk text content
+                - token_count: Number of tokens in chunk
+                - start_sentence: Index of first sentence
+                - end_sentence: Index of last sentence
+        
+        Note:
+            Overlap is approximated by including ~overlap/50 sentences
+            from the previous chunk
+        """
         chunk_size = chunk_size or self.chunk_size
         overlap = overlap or self.overlap
         
@@ -56,6 +120,29 @@ class DocumentEmbedder:
         return chunks
     
     def generate_embeddings(self, chunks: List[Dict]) -> pd.DataFrame:
+        """
+        Generate OpenAI embeddings for text chunks.
+        
+        Processes chunks through OpenAI's embedding API to create
+        vector representations for similarity search.
+        
+        Args:
+            chunks: List of chunk dictionaries from chunk_text()
+        
+        Returns:
+            pd.DataFrame with columns:
+                - chunk_id: Sequential identifier
+                - text: Chunk text content
+                - token_count: Number of tokens
+                - start_sentence: Starting sentence index
+                - end_sentence: Ending sentence index
+                - embedding: Vector representation (1536 dimensions)
+        
+        Note:
+            - Shows progress bar in Streamlit UI
+            - Continues processing even if individual chunks fail
+            - Uses text-embedding-3-small model by default
+        """
         embeddings_data = []
         
         progress_bar = st.progress(0)
@@ -94,6 +181,32 @@ class DocumentEmbedder:
     
     def find_similar_chunks(self, query: str, embeddings_df: pd.DataFrame, 
                           top_k: int = 5, include_neighbors: bool = True) -> List[Dict]:
+        """
+        Find chunks most similar to a query using cosine similarity.
+        
+        Performs semantic search by comparing query embedding with
+        document chunk embeddings. Optionally includes neighboring
+        chunks for additional context.
+        
+        Args:
+            query: User's question or search query
+            embeddings_df: DataFrame with chunk embeddings
+            top_k: Number of most similar chunks to retrieve
+            include_neighbors: Whether to include adjacent chunks (±1)
+        
+        Returns:
+            List of dictionaries containing:
+                - chunk_id: Chunk identifier
+                - text: Chunk text content
+                - similarity: Cosine similarity score (0-1)
+                - token_count: Number of tokens
+            Sorted by similarity score (highest first)
+        
+        Note:
+            Including neighbors helps maintain document flow and context,
+            especially important for legislative texts where provisions
+            may span multiple chunks.
+        """
         try:
             query_response = self.client.embeddings.create(
                 model=config.EMBEDDING_MODEL,

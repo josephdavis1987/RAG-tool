@@ -1,3 +1,40 @@
+"""
+Background Processing Module for Asynchronous Document Handling
+
+Provides multi-threaded document processing capabilities to handle
+PDF ingestion, chunking, and embedding generation without blocking
+the main application thread.
+
+Key Features:
+- Asynchronous document processing queue
+- Multi-threaded worker pool for parallel processing
+- Progress tracking with callback notifications
+- Automatic error recovery and status updates
+- Database persistence for processed documents
+- Document deduplication to avoid reprocessing
+
+Architecture:
+- Uses Python's threading and queue modules
+- Worker threads process documents from a shared queue
+- Progress callbacks provide real-time status updates
+- SQLite database for persistent storage
+
+Processing Pipeline:
+1. Document queued with metadata
+2. Worker thread picks up job
+3. PDF text extraction
+4. Text chunking with overlap
+5. Embedding generation via OpenAI API
+6. Storage in SQLite database
+7. Status update and callback notification
+
+Typical usage:
+    processor = get_processor()  # Get singleton instance
+    doc_id = processor.queue_document(file_path, filename, callback)
+    status = processor.get_document_status(doc_id)
+    embeddings_df = processor.get_embeddings_df(doc_id)
+"""
+
 import threading
 import queue
 import time
@@ -16,7 +53,22 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class BackgroundProcessor:
+    """
+    Manages asynchronous document processing with worker threads.
+    
+    Provides a queue-based system for processing documents in the background,
+    allowing the UI to remain responsive during lengthy embedding operations.
+    """
     def __init__(self, max_workers: int = 1):
+        """
+        Initialize the background processor.
+        
+        Args:
+            max_workers: Number of worker threads (default: 1)
+        
+        Note:
+            Single worker recommended to avoid OpenAI rate limits
+        """
         self.db = DocumentDatabase()
         self.pdf_loader = PDFLoader()
         self.client = OpenAI(api_key=config.OPENAI_API_KEY) if config.OPENAI_API_KEY else None
@@ -34,6 +86,12 @@ class BackgroundProcessor:
         self.start()
     
     def start(self):
+        """
+        Start worker threads for processing.
+        
+        Spawns daemon threads that process jobs from the queue.
+        Safe to call multiple times (no-op if already running).
+        """
         if self.running:
             return
             
@@ -47,6 +105,12 @@ class BackgroundProcessor:
         logger.info(f"Started {self.max_workers} background workers")
     
     def stop(self):
+        """
+        Stop all worker threads gracefully.
+        
+        Sends sentinel values to stop workers and waits for completion.
+        Times out after 5 seconds per worker if they don't respond.
+        """
         self.running = False
         
         # Add sentinel values to stop workers
@@ -60,6 +124,12 @@ class BackgroundProcessor:
         logger.info("Stopped background workers")
     
     def _worker_loop(self):
+        """
+        Main worker thread loop.
+        
+        Continuously processes jobs from the queue until stopped.
+        Handles exceptions gracefully to prevent thread death.
+        """
         while self.running:
             try:
                 job = self.job_queue.get(timeout=1)
@@ -75,6 +145,22 @@ class BackgroundProcessor:
                 logger.error(f"Worker error: {e}")
     
     def _process_job(self, job: Dict):
+        """
+        Process a single document job.
+        
+        Executes the complete pipeline:
+        1. Load PDF and extract text
+        2. Chunk text into overlapping segments
+        3. Generate embeddings for each chunk
+        4. Store in database
+        5. Update status and notify callbacks
+        
+        Args:
+            job: Dictionary containing:
+                - document_id: Database document ID
+                - file_path: Path to PDF file
+                - filename: Original filename
+        """
         doc_id = job['document_id']
         file_path = job['file_path']
         
@@ -144,6 +230,15 @@ class BackgroundProcessor:
             self._notify_progress(doc_id, 'failed', 0, f"Processing failed: {error_msg}")
     
     def _notify_progress(self, doc_id: int, status: str, progress: int, message: str):
+        """
+        Send progress update to registered callback.
+        
+        Args:
+            doc_id: Document ID
+            status: Current status ('processing', 'completed', 'failed')
+            progress: Progress percentage (0-100)
+            message: Status message
+        """
         if doc_id in self.progress_callbacks:
             try:
                 self.progress_callbacks[doc_id](doc_id, status, progress, message)
@@ -152,6 +247,23 @@ class BackgroundProcessor:
     
     def queue_document(self, file_path: str, filename: str = None, 
                       progress_callback: Callable = None) -> int:
+        """
+        Queue a document for background processing.
+        
+        Adds document to database and processing queue. If document
+        was already processed (same hash), returns immediately.
+        
+        Args:
+            file_path: Path to PDF file
+            filename: Display name (defaults to basename)
+            progress_callback: Function called with (doc_id, status, progress, message)
+        
+        Returns:
+            int: Document ID for tracking
+        
+        Raises:
+            Exception: If OpenAI client not configured or file not found
+        """
         if not self.client:
             raise Exception("OpenAI client not configured")
         
@@ -194,18 +306,60 @@ class BackgroundProcessor:
         return doc_id
     
     def get_document_status(self, doc_id: int) -> Optional[Dict]:
+        """
+        Get current status of a document.
+        
+        Args:
+            doc_id: Document ID
+        
+        Returns:
+            Dict with document metadata and status, or None if not found
+        """
         return self.db.get_document_by_id(doc_id)
     
     def get_embeddings_df(self, doc_id: int):
+        """
+        Retrieve processed embeddings for a document.
+        
+        Args:
+            doc_id: Document ID
+        
+        Returns:
+            pd.DataFrame with chunks and embeddings
+        """
         return self.db.get_chunks_df(doc_id)
     
     def get_queue_size(self) -> int:
+        """
+        Get number of jobs waiting in queue.
+        
+        Returns:
+            int: Number of pending jobs
+        """
         return self.job_queue.qsize()
     
     def list_documents(self, status: str = None):
+        """
+        List all documents, optionally filtered by status.
+        
+        Args:
+            status: Filter by status ('pending', 'processing', 'completed', 'failed')
+        
+        Returns:
+            List of document dictionaries
+        """
         return self.db.get_documents(status)
     
     def delete_document(self, doc_id: int):
+        """
+        Delete a document and its associated data.
+        
+        Args:
+            doc_id: Document ID to delete
+        
+        Note:
+            Also removes from progress callbacks if registered
+        """
         # Remove from progress callbacks
         if doc_id in self.progress_callbacks:
             del self.progress_callbacks[doc_id]
@@ -213,6 +367,16 @@ class BackgroundProcessor:
         return self.db.delete_document(doc_id)
     
     def get_stats(self):
+        """
+        Get system statistics.
+        
+        Returns:
+            Dict containing:
+                - Document counts by status
+                - Total chunks
+                - Queue size
+                - Active worker count
+        """
         stats = self.db.get_stats()
         stats['queue_size'] = self.get_queue_size()
         stats['workers_running'] = len([w for w in self.workers if w.is_alive()])
@@ -222,12 +386,23 @@ class BackgroundProcessor:
 _processor = None
 
 def get_processor() -> BackgroundProcessor:
+    """
+    Get or create the singleton BackgroundProcessor instance.
+    
+    Returns:
+        BackgroundProcessor: Global processor instance
+    """
     global _processor
     if _processor is None:
         _processor = BackgroundProcessor()
     return _processor
 
 def shutdown_processor():
+    """
+    Shutdown the global processor instance.
+    
+    Stops all workers and cleans up resources.
+    """
     global _processor
     if _processor:
         _processor.stop()
