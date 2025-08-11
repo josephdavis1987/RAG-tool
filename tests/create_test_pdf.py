@@ -5,7 +5,9 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 import os
 
 def create_test_bill():
-    filename = "test_bill.pdf"
+    filename = "data/test_bill.pdf"
+    # Create data directory if it doesn't exist
+    os.makedirs("data", exist_ok=True)
     doc = SimpleDocTemplate(filename, pagesize=letter)
     styles = getSampleStyleSheet()
     story = []

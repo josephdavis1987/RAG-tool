@@ -3,7 +3,7 @@ from openai import OpenAI
 import pandas as pd
 import streamlit as st
 import tiktoken
-from embed_and_store import DocumentEmbedder
+from .embed_and_store import DocumentEmbedder
 import config
 
 class RAGChain:

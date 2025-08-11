@@ -4,9 +4,9 @@ import time
 from typing import Dict, Callable, Optional
 import logging
 from datetime import datetime
-from pdf_loader import PDFLoader
-from embed_and_store import DocumentEmbedder
-from database import DocumentDatabase
+from .pdf_loader import PDFLoader
+from .embed_and_store import DocumentEmbedder
+from .database import DocumentDatabase
 from openai import OpenAI
 import config
 import os

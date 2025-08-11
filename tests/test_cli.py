@@ -2,9 +2,9 @@
 
 import os
 import sys
-from pdf_loader import PDFLoader
-from embed_and_store import DocumentEmbedder
-from rag_chain import RAGChain
+from src.pdf_loader import PDFLoader
+from src.embed_and_store import DocumentEmbedder
+from src.rag_chain import RAGChain
 from openai import OpenAI
 import config
 

@@ -3,8 +3,8 @@ import pandas as pd
 import os
 import time
 from datetime import datetime
-from background_processor import get_processor, shutdown_processor
-from rag_chain import RAGChain
+from src.background_processor import get_processor, shutdown_processor
+from src.rag_chain import RAGChain
 from openai import OpenAI
 import config
 
@@ -67,11 +67,11 @@ def main():
         
         if uploaded_file is not None:
             if st.button("Process for Evaluation", type="primary"):
-                # Create uploads directory if it doesn't exist
-                uploads_dir = "uploads"
+                # Create data/uploads directory if it doesn't exist
+                uploads_dir = "data/uploads"
                 os.makedirs(uploads_dir, exist_ok=True)
                 
-                # Save uploaded file permanently in uploads directory
+                # Save uploaded file permanently in data/uploads directory
                 file_path = os.path.join(uploads_dir, uploaded_file.name)
                 with open(file_path, "wb") as f:
                     f.write(uploaded_file.getvalue())
@@ -452,7 +452,7 @@ def main():
     st.divider()
     st.markdown(
         "🔬 **Research Framework**: This tool quantifies RAG methodology trade-offs through systematic evaluation. "
-        "For technical details, see the [Methodology Comparison documentation](METHODOLOGY_COMPARISON.md)."
+        "For technical details, see the [Methodology Comparison documentation](docs/METHODOLOGY_COMPARISON.md)."
     )
 
 if __name__ == "__main__":

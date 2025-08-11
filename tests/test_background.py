@@ -2,7 +2,7 @@
 
 import time
 import os
-from background_processor import get_processor, shutdown_processor
+from src.background_processor import get_processor, shutdown_processor
 
 def progress_callback(doc_id, status, progress, message):
     print(f"📊 Doc {doc_id}: [{progress:3d}%] {status} - {message}")
@@ -14,9 +14,9 @@ def test_background_processing():
     processor = get_processor()
     
     # Check if test PDF exists
-    test_pdf = "test_bill.pdf"
+    test_pdf = "data/test_bill.pdf"
     if not os.path.exists(test_pdf):
-        print("❌ test_bill.pdf not found. Run: python test_cli.py first")
+        print("❌ data/test_bill.pdf not found. Run: python tests/create_test_pdf.py first")
         return
     
     # Queue document for processing

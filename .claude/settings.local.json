@@ -7,7 +7,10 @@
       "Bash(if [ -f \"C:\\Users\\josep\\Desktop\\RAG tool 1.0\\app.py\" ])",
       "Bash(then echo \"File exists\")",
       "Bash(else echo \"File not found\")",
-      "Bash(fi)"
+      "Bash(fi)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }
