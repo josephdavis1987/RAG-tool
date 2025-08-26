@@ -233,77 +233,44 @@ def main():
                         height=100
                     )
                     
-                    col_baseline, col_comparison, col_summary = st.columns([1, 1, 1])
-                    
-                    with col_baseline:
-                        if st.button("RAG-Only Baseline", disabled=not query.strip(), help="Zero-hallucination document-only approach"):
-                            if query.strip():
-                                with st.spinner("Generating RAG answer..."):
-                                    result = rag_chain.answer_question(
-                                        query, 
-                                        embeddings_df,
-                                        top_k=5,
-                                        include_neighbors=True
-                                    )
+                    # Centered button for methodology evaluation
+                    if st.button(
+                        "🔬 Evaluate Methodologies", 
+                        type="primary", 
+                        disabled=not query.strip(), 
+                        help="Compare RAG-only vs Non-RAG vs Hybrid approaches with comprehensive metrics",
+                        use_container_width=True
+                    ):
+                        if query.strip():
+                            # Generate all three answers simultaneously
+                            with st.spinner("Generating RAG, Non-RAG, and Hybrid answers..."):
+                                rag_result = rag_chain.answer_question(
+                                    query, 
+                                    embeddings_df,
+                                    top_k=5,
+                                    include_neighbors=True
+                                )
                                 
-                                st.subheader("🎯 RAG-Only Results")
-                                st.write(result['answer'])
+                                non_rag_result = rag_chain.generate_non_rag_answer(query)
                                 
-                                with st.expander("📋 Answer Details"):
-                                    st.write(f"**Model Used:** {result['model_used']}")
-                                    st.write(f"**Chunks Used:** {result['chunks_used']}")
-                                    st.write(f"**Context Tokens:** {result['context_tokens']}")
-                                    st.write(f"**Response Time:** {result.get('response_time', 0):.2f}s")
-                                    st.write(f"**Total Tokens:** {result.get('total_tokens', 0)}")
+                                hybrid_result = rag_chain.generate_hybrid_answer(
+                                    query,
+                                    embeddings_df,
+                                    top_k=5,
+                                    include_neighbors=True
+                                )
                                 
-                                if result['citations']:
-                                    with st.expander("📚 Source Citations"):
-                                        for i, citation in enumerate(result['citations'][:5]):
-                                            st.write(f"**Chunk {citation['chunk_id']}** (Similarity: {citation.get('similarity', 0):.3f})")
-                                            preview_text = citation['text'][:300] + "..." if len(citation['text']) > 300 else citation['text']
-                                            st.text(preview_text)
-                                            st.divider()
-                    
-                    with col_comparison:
-                        if st.button("Three-Way Comparison", type="primary", disabled=not query.strip(), help="Compare RAG-only vs Non-RAG vs Hybrid approaches"):
-                            if query.strip():
-                                # Generate all three answers simultaneously
-                                with st.spinner("Generating RAG, Non-RAG, and Hybrid answers..."):
-                                    rag_result = rag_chain.answer_question(
-                                        query, 
-                                        embeddings_df,
-                                        top_k=5,
-                                        include_neighbors=True
-                                    )
-                                    
-                                    non_rag_result = rag_chain.generate_non_rag_answer(query)
-                                    
-                                    hybrid_result = rag_chain.generate_hybrid_answer(
-                                        query,
-                                        embeddings_df,
-                                        top_k=5,
-                                        include_neighbors=True
-                                    )
-                                    
-                                    # Store all results in session state
-                                    st.session_state.ab_results = {
-                                        'query': query,
-                                        'rag_result': rag_result,
-                                        'non_rag_result': non_rag_result,
-                                        'hybrid_result': hybrid_result
-                                    }
-                                    
-                                    # Initialize comparison mode if not set
-                                    if 'comparison_mode' not in st.session_state:
-                                        st.session_state.comparison_mode = 'non_rag'
-                    
-                    with col_summary:
-                        if st.button("Generate Document Summary"):
-                            with st.spinner("Generating summary..."):
-                                summary = rag_chain.get_document_summary(embeddings_df)
-                            
-                            st.subheader("📄 Document Summary")
-                            st.write(summary)
+                                # Store all results in session state
+                                st.session_state.ab_results = {
+                                    'query': query,
+                                    'rag_result': rag_result,
+                                    'non_rag_result': non_rag_result,
+                                    'hybrid_result': hybrid_result
+                                }
+                                
+                                # Initialize comparison mode if not set
+                                if 'comparison_mode' not in st.session_state:
+                                    st.session_state.comparison_mode = 'non_rag'
                 
                 with col2:
                     st.subheader("📊 Retrieval Analysis")
